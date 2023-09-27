@@ -36,6 +36,8 @@ add_custom_target (check0 COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --s
 
 add_custom_target (check_webget COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --timeout 12 -R 'webget')
 
+add_custom_target (check1 COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --stop-on-failure --timeout 12 -R '^byte_stream_|^reassembler_')
+
 ###
 
 add_custom_target (speed COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --timeout 12 -R '_speed_test')
@@ -53,4 +55,4 @@ set_property(TEST ${compile_name_opt} PROPERTY TIMEOUT -1)
 set_tests_properties(${compile_name_opt} PROPERTIES FIXTURES_SETUP compile_opt)
 
 stest(byte_stream_speed_test)
-
+stest(reassembler_speed_test)
