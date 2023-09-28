@@ -33,9 +33,8 @@ public:
   Reassembler();
 
 private:
-  uint64_t unpoped_idx_;
-  uint16_t unassembled_idx_;
-  uint16_t unaccepted_idx_;
+  uint64_t unassembled_idx_;
+  uint64_t unaccepted_idx_;
   bool need_close_;
 	struct segment {
 		uint64_t idx;

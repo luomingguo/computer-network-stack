@@ -3,7 +3,7 @@
 using namespace std;
 
 Reassembler::Reassembler() : 
-    unpoped_idx_(0), unassembled_idx_(0), unaccepted_idx_(0), need_close_(0), holes_({}) {}
+ 	unassembled_idx_(0), unaccepted_idx_(0), need_close_(0), holes_({}) {}
 
 void Reassembler::insert(uint64_t first_index, string data, bool is_last_substring, Writer &output)
 {
