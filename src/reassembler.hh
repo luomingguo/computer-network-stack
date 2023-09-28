@@ -1,8 +1,7 @@
 #pragma once
 
 #include "byte_stream.hh"
-
-#include <string>
+#include <set>
 
 class Reassembler
 {
@@ -31,4 +30,16 @@ public:
 
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
+  Reassembler();
+
+private:
+  uint64_t unassembled_idx_;
+  uint64_t unaccepted_idx_;
+  bool need_close_;
+	struct segment {
+		uint64_t idx;
+		std::string data;
+		bool merge(const segment& t);
+	};
+  std::vector<segment> holes_;
 };
