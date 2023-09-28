@@ -39,8 +39,6 @@ private:
 	struct segment {
 		uint64_t idx;
 		std::string data;
-		bool operator<(const segment& t) const { return idx < t.idx; }
-		bool operator>(const segment& t) const { return idx > t.idx; }
 		bool merge(const segment& t);
 	};
   std::vector<segment> holes_;

@@ -11,7 +11,6 @@ void Reassembler::insert(uint64_t first_index, string data, bool is_last_substri
     if (is_last_substring) this->need_close_ = true;
     uint64_t available_capacity = output.available_capacity();
 	this->unaccepted_idx_ = available_capacity + this->unassembled_idx_;
-
     // 判断新到数据是否有价值
     if (unassembled_idx_ == unaccepted_idx_ || unassembled_idx_ >= first_index + data.size() || unaccepted_idx_ <= first_index) {
         if (this->need_close_ && !this->bytes_pending()) {
@@ -58,33 +57,24 @@ void Reassembler::insert(uint64_t first_index, string data, bool is_last_substri
 }
 
 bool Reassembler::segment::merge(const Reassembler::segment& t) {
-	uint64_t offset;
-	if (idx >= t.idx && idx + data.size() <= t.idx + t.data.size() ) {
-		idx = t.idx;
-		data = std::move(t.data);
-		return true;
-	} else if (idx <= t.idx && t.idx + t.data.size() <= idx + data.size()) {
-		return true;
-	}
-	else if (idx >= t.idx && t.idx + t.data.size() >= idx) {
-		offset = t.idx + t.data.size();
-		if (offset < idx + data.size()) {
-			offset = idx + data.size();
-			data = t.data + data.substr(t.data.size() - idx + t.idx, offset - t.idx - t.data.size());
-		}
-		idx = t.idx;
-		return true;
-	} else if (idx <= t.idx && idx + data.size() >= t.idx) {
-		offset = idx + data.size();
-		if (offset < t.idx + t.data.size()) {
-			offset = t.idx + t.data.size();
-			data.append(t.data.substr(data.size() - t.idx + idx, offset - data.size() - idx));
-		}
-		return true;
-	} 
-	
-	
-	return false;
+    if (idx > t.idx + t.data.size() || idx + data.size() < t.idx) {
+        // 完全没有重叠，不需要合并
+        return false;
+    }
+    uint64_t new_start = std::min(idx, t.idx);
+    uint64_t new_end = std::max(idx + data.size(), t.idx + t.data.size());
+
+    if (new_start == t.idx && new_end == t.idx + t.data.size()) {
+        // 完全被对方包含，需要更新位置和数据
+        idx = t.idx;
+        data = std::move(t.data);
+    } else if (new_start == idx) {  // 对方在后
+		data.append(t.data.substr(t.data.size() + data.size() - new_end + new_start, new_end - data.size() - idx));
+	} else { //对方在前
+        idx = new_start;
+		data = t.data + data.substr(t.data.size() + data.size() - new_end + new_start, new_end - t.idx - t.data.size());
+    }
+    return true;
 }
 
 uint64_t Reassembler::bytes_pending() const
