@@ -15,16 +15,13 @@ void Writer::push( string data )
 {
   // Your code here.
   if (this->is_closed()) {
-    std::cerr << "writer is close" << std::endl;
-    set_error();
+    cerr << "writer is close" << endl;
     return;
   }
   uint64_t data_size = static_cast<uint64_t>(data.size());
-  if (data_size == 0) return;
   if ( data_size > this->available_capacity() ) {
     data_size = this->available_capacity();
   }
-  // std::copy(data.begin(), data.begin() + static_cast<size_t>(data_size), std::back_inserter(this->buffer_));
   for (uint64_t i = 0; i < data_size; i++) {
     this->buffer_.push_back(data[i]);
   }
@@ -64,17 +61,13 @@ uint64_t Writer::bytes_pushed() const
 string_view Reader::peek() const
 {
   // Your code here.
-  if (!this->buffer_.size()) {
-    return {};
-  }
-
-  return std::string_view(&this->buffer_.front(), 1);
+  return this->buffer_.empty() ? std::string_view{} : std::string_view(&this->buffer_.front(), 1);
 }
 
 bool Reader::is_finished() const
 {
   // Your code here.
-  return this->is_close_ && !this->bytes_buffered();
+  return this->is_close_ && this->bytes_buffered() == 0;
 }
 
 bool Reader::has_error() const
@@ -85,10 +78,7 @@ bool Reader::has_error() const
 
 void Reader::pop( uint64_t len )
 {
-  uint64_t pop_size = len;
-  if (this->bytes_buffered() < len) {
-    pop_size = this->bytes_buffered();
-  }
+  uint64_t pop_size = this->bytes_buffered() < len ? this->bytes_buffered() : len;
   for (uint64_t i = 0; i < pop_size; i++) {
     this->buffer_.pop_front();
   }
