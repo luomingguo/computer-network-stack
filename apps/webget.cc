@@ -10,25 +10,22 @@ using namespace std;
 
 void get_URL( const string& host, const string& path )
 {
-  cerr << "Function called: get_URL(" << host << ", " << path << ")\n";
   // cerr << "Warning: get_URL() has not been implemented yet.\n";
   std::shared_ptr<TCPSocket> socket = std::make_shared<TCPSocket>();
   std::shared_ptr<Address> addr = std::make_shared<Address>(host, "http");
   socket->connect(*addr.get());
   
   stringstream ss;
-  ss << "GET " << path << " HTTP/1.1\r" << std::endl;
-  ss << "Host: " << host << "\r" << std::endl;
-  ss << "Connection: close\r" << std::endl;
-  ss << "\r" << std::endl;
-  cerr << "ss(" << ss.str() << ")\n";
+  ss << "GET " << path << " HTTP/1.1\r\n";
+  ss << "Host: " << host << "\r\n";
+  ss << "Connection: close\r\n";
+  ss << "\r" <<std::endl;
   socket->write(std::string_view(ss.str()));
   std::string buffer;
   while(!socket->eof()) {
     socket->read(buffer);
     std::cout << buffer;
   }
-
   socket->shutdown(SHUT_RDWR);
 }
 
