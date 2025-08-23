@@ -1,4 +1,4 @@
-Stanford CS 144 Networking Lab
+斯坦福计算机网络实验的个人实现，为了遵守如下声明（半遵守），我把关于项目的所有关键字扣掉
 ==============================
 
 These labs are open to the public under the (friendly) request that to
