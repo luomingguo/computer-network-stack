@@ -1,2 +1,5 @@
-.vscode/
-build*
+/build
+/.ccls-cache
+/.vscode
+*.swp
+/.cache

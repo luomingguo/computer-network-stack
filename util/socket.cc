@@ -79,7 +79,7 @@ Address Socket::peer_address() const
 //! \param[in] address is a local Address to bind
 void Socket::bind( const Address& address )
 {
-  CheckSystemCall( "bind", ::bind( fd_num(), address, address.size() ) );
+  CheckSystemCall( "bind", ::bind( fd_num(), address.raw(), address.size() ) );
 }
 
 void Socket::bind_to_device( const string_view device_name )
@@ -91,7 +91,7 @@ void Socket::bind_to_device( const string_view device_name )
 //! \param[in] address is the peer's Address
 void Socket::connect( const Address& address )
 {
-  CheckSystemCall( "connect", ::connect( fd_num(), address, address.size() ) );
+  CheckSystemCall( "connect", ::connect( fd_num(), address.raw(), address.size() ) );
 }
 
 // shut down a socket in the specified way
@@ -140,8 +140,8 @@ void DatagramSocket::recv( Address& source_address, string& payload )
 
 void DatagramSocket::sendto( const Address& destination, const string_view payload )
 {
-  CheckSystemCall( "sendto",
-                   ::sendto( fd_num(), payload.data(), payload.length(), 0, destination, destination.size() ) );
+  CheckSystemCall(
+    "sendto", ::sendto( fd_num(), payload.data(), payload.length(), 0, destination.raw(), destination.size() ) );
   register_write();
 }
 

@@ -43,6 +43,11 @@ int main()
       all_zeroes( test );
     }
 
+    {
+      ByteStreamTestHarness test { "first-peek", 15 };
+      test.execute( Peek { "" } );
+    }
+
   } catch ( const exception& e ) {
     cerr << "Exception: " << e.what() << "\n";
     return EXIT_FAILURE;

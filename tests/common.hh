@@ -41,12 +41,6 @@ struct TestStep
   virtual std::string str() const = 0;
   virtual void execute( T& ) const = 0;
   virtual uint8_t color() const = 0;
-
-  TestStep() = default;
-  TestStep( const TestStep& other ) = default;
-  TestStep( TestStep&& other ) noexcept = default;
-  TestStep& operator=( const TestStep& other ) = default;
-  TestStep& operator=( TestStep&& other ) noexcept = default;
   virtual ~TestStep() = default;
 };
 
@@ -123,17 +117,24 @@ struct Action : public TestStep<T>
   uint8_t color() const override { return Printer::blue; }
 };
 
-template<class T>
-struct ExpectBool : public Expectation<T>
+template<class T, typename Num>
+struct ExpectNumber : public Expectation<T>
 {
-  bool value_;
-  explicit ExpectBool( bool value ) : value_( value ) {}
-  std::string description() const override { return name() + " = " + ExpectationViolation::boolstr( value_ ); }
+  Num value_;
+  explicit ExpectNumber( Num value ) : value_( value ) {}
+  std::string description() const override
+  {
+    if constexpr ( std::is_same<Num, bool>::value ) {
+      return name() + " = " + ExpectationViolation::boolstr( value_ );
+    } else {
+      return name() + " = " + to_string( value_ );
+    }
+  }
   virtual std::string name() const = 0;
-  virtual bool value( T& ) const = 0;
+  virtual Num value( T& ) const = 0;
   void execute( T& obj ) const override
   {
-    const bool result = value( obj );
+    const Num result { value( obj ) };
     if ( result != value_ ) {
       throw ExpectationViolation { name(), value_, result };
     }
@@ -141,18 +142,30 @@ struct ExpectBool : public Expectation<T>
 };
 
 template<class T, typename Num>
-struct ExpectNumber : public Expectation<T>
+struct ConstExpectNumber : public ExpectNumber<T, Num>
 {
-  Num num_;
-  explicit ExpectNumber( Num num ) : num_( num ) {}
-  std::string description() const override { return name() + " = " + to_string( num_ ); }
-  virtual std::string name() const = 0;
-  virtual Num value( T& ) const = 0;
-  void execute( T& obj ) const override
+  using ExpectNumber<T, Num>::ExpectNumber;
+  using ExpectNumber<T, Num>::execute;
+  using ExpectNumber<T, Num>::name;
+  void execute( const T& obj ) const
   {
     const Num result { value( obj ) };
-    if ( result != num_ ) {
-      throw ExpectationViolation { name(), num_, result };
+    if ( result != ExpectNumber<T, Num>::value_ ) {
+      throw ExpectationViolation { name(), ExpectNumber<T, Num>::value_, result };
     }
   }
+  Num value( T& obj ) const override { return value( std::as_const( obj ) ); }
+  virtual Num value( const T& ) const = 0;
+};
+
+template<class T>
+struct ExpectBool : public ExpectNumber<T, bool>
+{
+  using ExpectNumber<T, bool>::ExpectNumber;
+};
+
+template<class T>
+struct ConstExpectBool : public ConstExpectNumber<T, bool>
+{
+  using ConstExpectNumber<T, bool>::ConstExpectNumber;
 };

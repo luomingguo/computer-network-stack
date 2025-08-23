@@ -8,49 +8,48 @@
 #include <sstream>
 #include <utility>
 
-using StreamAndReassembler = std::pair<ByteStream, Reassembler>;
-
 template<std::derived_from<TestStep<ByteStream>> T>
-struct ReassemblerByteStreamTestStep : public TestStep<StreamAndReassembler>
+struct ReassemblerTestStep : public TestStep<Reassembler>
 {
   T step_;
 
   template<typename... Targs>
-  explicit ReassemblerByteStreamTestStep( T byte_stream_test_step )
-    : TestStep<StreamAndReassembler>(), step_( std::move( byte_stream_test_step ) )
+  explicit ReassemblerTestStep( T byte_stream_test_step )
+    : TestStep<Reassembler>(), step_( std::move( byte_stream_test_step ) )
   {}
 
   std::string str() const override { return step_.str(); }
   uint8_t color() const override { return step_.color(); }
-  void execute( StreamAndReassembler& sr ) const override { step_.execute( sr.first ); }
+  void execute( Reassembler& r ) const override { step_.execute( r.reader() ); }
+  void execute( const Reassembler& r ) const { step_.execute( r.reader() ); }
 };
 
-class ReassemblerTestHarness : public TestHarness<StreamAndReassembler>
+class ReassemblerTestHarness : public TestHarness<Reassembler>
 {
 public:
   ReassemblerTestHarness( std::string test_name, uint64_t capacity )
     : TestHarness( move( test_name ),
                    "capacity=" + std::to_string( capacity ),
-                   { ByteStream { capacity }, Reassembler {} } )
+                   { Reassembler { ByteStream { capacity } } } )
   {}
 
   template<std::derived_from<TestStep<ByteStream>> T>
   void execute( const T& test )
   {
-    TestHarness<StreamAndReassembler>::execute( ReassemblerByteStreamTestStep { test } );
+    TestHarness<Reassembler>::execute( ReassemblerTestStep { test } );
   }
 
-  using TestHarness<StreamAndReassembler>::execute;
+  using TestHarness<Reassembler>::execute;
 };
 
-struct BytesPending : public ExpectNumber<StreamAndReassembler, uint64_t>
+struct BytesPending : public ConstExpectNumber<Reassembler, uint64_t>
 {
-  using ExpectNumber::ExpectNumber;
+  using ConstExpectNumber::ConstExpectNumber;
   std::string name() const override { return "bytes_pending"; }
-  uint64_t value( StreamAndReassembler& sr ) const override { return sr.second.bytes_pending(); }
+  uint64_t value( const Reassembler& r ) const override { return r.bytes_pending(); }
 };
 
-struct Insert : public Action<StreamAndReassembler>
+struct Insert : public Action<Reassembler>
 {
   std::string data_;
   uint64_t first_index_;
@@ -74,8 +73,5 @@ struct Insert : public Action<StreamAndReassembler>
     return ss.str();
   }
 
-  void execute( StreamAndReassembler& sr ) const override
-  {
-    sr.second.insert( first_index_, data_, is_last_substring_, sr.first.writer() );
-  }
+  void execute( Reassembler& r ) const override { r.insert( first_index_, data_, is_last_substring_ ); }
 };

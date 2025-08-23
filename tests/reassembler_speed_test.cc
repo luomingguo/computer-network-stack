@@ -36,8 +36,7 @@ void speed_test( const size_t num_chunks,   // NOLINT(bugprone-easily-swappable-
     split_data.emplace( i + 1, data.substr( i + 1, capacity * 2 ), i + 1 + capacity * 2 >= data.size() );
   }
 
-  ByteStream stream { capacity };
-  Reassembler reassembler;
+  Reassembler reassembler { ByteStream { capacity } };
 
   string output_data;
   output_data.reserve( data.size() );
@@ -45,18 +44,18 @@ void speed_test( const size_t num_chunks,   // NOLINT(bugprone-easily-swappable-
   const auto start_time = steady_clock::now();
   while ( not split_data.empty() ) {
     auto& next = split_data.front();
-    reassembler.insert( get<uint64_t>( next ), move( get<string>( next ) ), get<bool>( next ), stream.writer() );
+    reassembler.insert( get<uint64_t>( next ), move( get<string>( next ) ), get<bool>( next ) );
     split_data.pop();
 
-    while ( stream.reader().bytes_buffered() ) {
-      output_data += stream.reader().peek();
-      stream.reader().pop( output_data.size() - stream.reader().bytes_popped() );
+    while ( reassembler.reader().bytes_buffered() ) {
+      output_data += reassembler.reader().peek();
+      reassembler.reader().pop( output_data.size() - reassembler.reader().bytes_popped() );
     }
   }
 
   const auto stop_time = steady_clock::now();
 
-  if ( not stream.reader().is_finished() ) {
+  if ( not reassembler.reader().is_finished() ) {
     throw runtime_error( "Reassembler did not close ByteStream when finished" );
   }
 

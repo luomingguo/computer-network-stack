@@ -9,64 +9,81 @@
 #include <sstream>
 #include <utility>
 
-using ReceiverSet = std::pair<StreamAndReassembler, TCPReceiver>;
-
-template<std::derived_from<TestStep<StreamAndReassembler>> T>
-struct ReceiverSetTestStep : public TestStep<ReceiverSet>
+template<std::derived_from<TestStep<Reassembler>> T>
+struct DirectReassemblerTest : public TestStep<TCPReceiver>
 {
   T step_;
 
   template<typename... Targs>
-  explicit ReceiverSetTestStep( T sr_test_step ) : TestStep<ReceiverSet>(), step_( std::move( sr_test_step ) )
+  explicit DirectReassemblerTest( T sr_test_step ) : TestStep<TCPReceiver>(), step_( std::move( sr_test_step ) )
   {}
 
   std::string str() const override { return step_.str(); }
   uint8_t color() const override { return step_.color(); }
-  void execute( ReceiverSet& sr ) const override { step_.execute( sr.first ); }
+  void execute( TCPReceiver& sr ) const override { step_.execute( sr.reassembler() ); }
 };
 
-class TCPReceiverTestHarness : public TestHarness<ReceiverSet>
+template<std::derived_from<TestStep<ByteStream>> T>
+struct DirectByteStreamTest : public TestStep<TCPReceiver>
+{
+  T step_;
+
+  template<typename... Targs>
+  explicit DirectByteStreamTest( T sr_test_step ) : TestStep<TCPReceiver>(), step_( std::move( sr_test_step ) )
+  {}
+
+  std::string str() const override { return step_.str(); }
+  uint8_t color() const override { return step_.color(); }
+  void execute( TCPReceiver& sr ) const override { step_.execute( sr.reader() ); }
+};
+
+class TCPReceiverTestHarness : public TestHarness<TCPReceiver>
 {
 public:
   TCPReceiverTestHarness( std::string test_name, uint64_t capacity )
     : TestHarness( move( test_name ),
                    "capacity=" + std::to_string( capacity ),
-                   { { ByteStream { capacity }, Reassembler {} }, TCPReceiver {} } )
+                   { TCPReceiver { Reassembler { ByteStream { capacity } } } } )
   {}
 
-  template<std::derived_from<TestStep<StreamAndReassembler>> T>
+  template<std::derived_from<TestStep<Reassembler>> T>
   void execute( const T& test )
   {
-    TestHarness<ReceiverSet>::execute( ReceiverSetTestStep { test } );
+    TestHarness<TCPReceiver>::execute( DirectReassemblerTest { test } );
   }
 
   template<std::derived_from<TestStep<ByteStream>> T>
   void execute( const T& test )
   {
-    TestHarness<ReceiverSet>::execute( ReceiverSetTestStep { ReassemblerByteStreamTestStep { test } } );
+    TestHarness<TCPReceiver>::execute( DirectByteStreamTest { test } );
   }
 
-  using TestHarness<ReceiverSet>::execute;
+  using TestHarness<TCPReceiver>::execute;
 };
 
-struct ExpectWindow : public ExpectNumber<ReceiverSet, uint16_t>
+struct ExpectWindow : public ExpectNumber<TCPReceiver, uint16_t>
 {
   using ExpectNumber::ExpectNumber;
   std::string name() const override { return "window_size"; }
-  uint16_t value( ReceiverSet& rs ) const override { return rs.second.send( rs.first.first.writer() ).window_size; }
+  uint16_t value( TCPReceiver& rs ) const override { return rs.send().window_size; }
 };
 
-struct ExpectAckno : public ExpectNumber<ReceiverSet, std::optional<Wrap32>>
+struct ExpectAckno : public ExpectNumber<TCPReceiver, std::optional<Wrap32>>
 {
   using ExpectNumber::ExpectNumber;
   std::string name() const override { return "ackno"; }
-  std::optional<Wrap32> value( ReceiverSet& rs ) const override
-  {
-    return rs.second.send( rs.first.first.writer() ).ackno;
-  }
+  std::optional<Wrap32> value( TCPReceiver& rs ) const override { return rs.send().ackno; }
 };
 
-struct ExpectAcknoBetween : public Expectation<ReceiverSet>
+struct ExpectReset : public ExpectBool<TCPReceiver>
+{
+  using ExpectBool::ExpectBool;
+  std::string name() const override { return "RST"; }
+
+  bool value( TCPReceiver& rs ) const override { return rs.send().RST; }
+};
+
+struct ExpectAcknoBetween : public Expectation<TCPReceiver>
 {
   Wrap32 isn_;
   uint64_t checkpoint_;
@@ -80,9 +97,9 @@ struct ExpectAcknoBetween : public Expectation<ReceiverSet>
     return "ackno unwraps to between " + to_string( min_ ) + " and " + to_string( max_ );
   }
 
-  void execute( ReceiverSet& rs ) const override
+  void execute( TCPReceiver& rs ) const override
   {
-    auto ackno = rs.second.send( rs.first.first.writer() ).ackno;
+    auto ackno = rs.send().ackno;
     if ( not ackno.has_value() ) {
       throw ExpectationViolation( "TCPReceiver did not have ackno when expected" );
     }
@@ -94,17 +111,14 @@ struct ExpectAcknoBetween : public Expectation<ReceiverSet>
   }
 };
 
-struct HasAckno : public ExpectBool<ReceiverSet>
+struct HasAckno : public ExpectBool<TCPReceiver>
 {
   using ExpectBool::ExpectBool;
   std::string name() const override { return "ackno.has_value()"; }
-  bool value( ReceiverSet& rs ) const override
-  {
-    return rs.second.send( rs.first.first.writer() ).ackno.has_value();
-  }
+  bool value( TCPReceiver& rs ) const override { return rs.send().ackno.has_value(); }
 };
 
-struct SegmentArrives : public Action<ReceiverSet>
+struct SegmentArrives : public Action<TCPReceiver>
 {
   TCPSenderMessage msg_ {};
   HasAckno ackno_expected_ { true };
@@ -118,6 +132,12 @@ struct SegmentArrives : public Action<ReceiverSet>
   SegmentArrives& with_fin()
   {
     msg_.FIN = true;
+    return *this;
+  }
+
+  SegmentArrives& with_rst()
+  {
+    msg_.RST = true;
     return *this;
   }
 
@@ -141,9 +161,9 @@ struct SegmentArrives : public Action<ReceiverSet>
     return *this;
   }
 
-  void execute( ReceiverSet& rs ) const override
+  void execute( TCPReceiver& rs ) const override
   {
-    rs.second.receive( msg_, rs.first.second, rs.first.first.writer() );
+    rs.receive( msg_ );
     ackno_expected_.execute( rs );
   }
 

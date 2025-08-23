@@ -31,18 +31,15 @@ std::string to_string( const std::optional<T>& v )
 
   return "None";
 }
-
-template<typename T>
-std::string as_string( T&& t )
-{
-  return to_string( std::forward<T>( t ) );
-}
 } // namespace minnow_conversions
 
 template<typename T>
+concept MinnowStringable = requires( T t ) { minnow_conversions::to_string( t ); };
+
+template<MinnowStringable T>
 std::string to_string( T&& t )
 {
-  return minnow_conversions::as_string( std::forward<T>( t ) );
+  return minnow_conversions::to_string( std::forward<T>( t ) );
 }
 
 inline std::ostream& operator<<( std::ostream& os, Wrap32 a )

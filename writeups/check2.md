@@ -11,8 +11,13 @@ I would like to thank/reward these classmates for their help: [list sunetids her
 
 This lab took me about [n] hours to do. I [did/did not] attend the lab session.
 
-Program Structure and Design of the TCPReceiver and wrap/unwrap routines:
-[]
+Describe Wrap32 and TCPReceiver structure and design. [Describe data
+structures and approach taken. Describe alternative designs considered
+or tested.  Describe benefits and weaknesses of your design compared
+with alternatives -- perhaps in terms of simplicity/complexity, risk
+of bugs, asymptotic performance, empirical performance, required
+implementation time and difficulty, and other factors. Include any
+measurements if applicable.]
 
 Implementation Challenges:
 []

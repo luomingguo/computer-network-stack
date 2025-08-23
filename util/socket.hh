@@ -90,7 +90,7 @@ class TCPSocket : public Socket
 private:
   //! \brief Construct from FileDescriptor (used by accept())
   //! \param[in] fd is the FileDescriptor from which to construct
-  explicit TCPSocket( FileDescriptor&& fd ) : Socket( std::move( fd ), AF_INET, SOCK_STREAM ) {}
+  explicit TCPSocket( FileDescriptor&& fd ) : Socket( std::move( fd ), AF_INET, SOCK_STREAM, IPPROTO_TCP ) {}
 
 public:
   //! Default: construct an unbound, unconnected TCP socket
@@ -110,4 +110,23 @@ public:
   PacketSocket( const int type, const int protocol ) : DatagramSocket( AF_PACKET, type, protocol ) {}
 
   void set_promiscuous();
+};
+
+//! A wrapper around [Unix-domain stream sockets](\ref man7::unix)
+class LocalStreamSocket : public Socket
+{
+public:
+  //! Construct from a file descriptor
+  explicit LocalStreamSocket( FileDescriptor&& fd ) : Socket( std::move( fd ), AF_UNIX, SOCK_STREAM ) {}
+};
+
+//! A wrapper around [Unix-domain datagram sockets](\ref man7::unix)
+class LocalDatagramSocket : public DatagramSocket
+{
+  //! \param[in] fd is the FileDescriptor from which to construct
+  explicit LocalDatagramSocket( FileDescriptor&& fd ) : DatagramSocket( std::move( fd ), AF_UNIX, SOCK_DGRAM ) {}
+
+public:
+  //! Default: construct an unbound, unconnected socket
+  LocalDatagramSocket() : DatagramSocket( AF_UNIX, SOCK_DGRAM ) {}
 };

@@ -69,7 +69,7 @@ public:
   //! Size of the underlying address storage.
   socklen_t size() const { return _size; }
   //! Const pointer to the underlying socket address storage.
-  operator const sockaddr*() const { return static_cast<const sockaddr*>( _address ); } // NOLINT(*-explicit-*)
+  const sockaddr* raw() const { return static_cast<const sockaddr*>( _address ); }
   //! Safely convert to underlying sockaddr type
   template<typename sockaddr_type>
   const sockaddr_type* as() const;
