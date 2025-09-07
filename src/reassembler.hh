@@ -2,11 +2,15 @@
 
 #include "byte_stream.hh"
 
+#include <list>
+
 class Reassembler
 {
 public:
   // Construct Reassembler to write into given ByteStream.
-  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {}
+  explicit Reassembler( ByteStream&& output ) : output_(std::move( output )), slots_() {
+    
+  }
 
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -42,4 +46,23 @@ public:
 
 private:
   ByteStream output_; // the Reassembler writes to this ByteStream
+  class segment {
+
+  public:
+    bool operator<(const segment& t) const { return start_ < t.start_; }
+    // bool operator==(const segment& t) const {return start_ == t.start_ && data_ == t.data_ ;}
+    segment(uint64_t idx, const std::string& s): data_(s), start_(idx), end_(start_ + data_.size()) {}
+    segment(uint64_t idx, std::string&& s): data_(std::move(s)), start_(idx), end_(start_ + data_.size()) {}
+    void merge(uint64_t first_index, std::string& new_data);
+    inline uint64_t end_idx() const { return end_; }
+    inline uint64_t start_idx() const { return start_; }
+    
+    std::string data_;
+  private:
+    
+    uint64_t start_;
+    uint64_t end_;
+
+  };
+  std::list<segment> slots_;
 };
