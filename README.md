@@ -1,20 +1,51 @@
-斯坦福计算机网络实验的个人实现，为了遵守如下声明（半遵守），我把关于项目的所有关键字扣掉
-==============================
+# 简单网络协议栈实现
 
-These labs are open to the public under the (friendly) request that to
-preserve their value as a teaching tool, solutions not be posted
-publicly by anybody.
 
-Website: https://cs144.stanford.edu
 
-To set up the build system: `cmake -S . -B build`
 
-To compile: `cmake --build build`
 
-To run tests: `cmake --build build --target test`
+## 环境搭建
 
-To run speed benchmarks: `cmake --build build --target speed`
 
-To run clang-tidy (which suggests improvements): `cmake --build build --target tidy`
 
-To format code: `cmake --build build --target format`
+1. 安装虚拟机 [VirtualBox](https://www.virtualbox.org/)
+   - 如果主机是Linux，你的版本可能已经包括了
+   - Debian类型的（比如Ubuntu），执行`apt-get install virtualbox`进行安装
+   - 如果是Macbook Apple芯片，可以考虑改用 [UTM 虚拟机](https://mac.getutm.app/)
+2. 下载 [镜像](https://stanford.edu/class/cs144/vm_files/cs144-fall-2025-x86.ova)， 配置时建议内存给够4GB，CPU核至少一个（多的话利于编译）
+   - ssh端口为2222， 账密分别都是cs1444
+   - 镜像里面已经下载并配置好工具链了
+3. 本人vscode编译环境，习惯用sftp同步代码运行。
+
+
+
+
+
+## 编译与运行
+
+
+
+构建： `cmake -S . -B build`
+
+编译： `cmake --build build`
+
+运行测试：`cmake --build build --target test`
+
+性能基准测试：`cmake --build build --target speed`
+
+获取 C++ 编译器改进建议： `cmake --build build --target tidy`
+
+规范代码：`cmake --build build --target format`
+
+关于调试：
+
+- `gdb tests/byte_stream_one_write`
+- 如果
+
+
+
+## 功能特性
+
+
+
+## 性能基准
