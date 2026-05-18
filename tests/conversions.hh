@@ -8,7 +8,7 @@
 
 // https://stackoverflow.com/questions/33399594/making-a-user-defined-class-stdto-stringable
 
-namespace minnow_conversions {
+namespace net_stack_conversions {
 using std::to_string;
 
 class DebugWrap32 : public Wrap32 {
@@ -27,13 +27,13 @@ template <typename T> std::string to_string(const std::optional<T> &v) {
 
   return "None";
 }
-} // namespace minnow_conversions
+} // namespace net_stack_conversions
 
 template <typename T>
-concept MinnowStringable = requires(T t) { minnow_conversions::to_string(t); };
+concept NetStackStringable = requires(T t) { net_stack_conversions::to_string(t); };
 
-template <MinnowStringable T> std::string to_string(T &&t) {
-  return minnow_conversions::to_string(std::forward<T>(t));
+template <NetStackStringable T> std::string to_string(T &&t) {
+  return net_stack_conversions::to_string(std::forward<T>(t));
 }
 
 inline std::ostream &operator<<(std::ostream &os, Wrap32 a) {
@@ -44,7 +44,7 @@ inline bool operator!=(Wrap32 a, Wrap32 b) { return not(a == b); }
 
 inline int64_t operator-(Wrap32 a, Wrap32 b) {
   return static_cast<int64_t>(
-             minnow_conversions::DebugWrap32{a}.debug_get_raw_value()) -
+             net_stack_conversions::DebugWrap32{a}.debug_get_raw_value()) -
          static_cast<int64_t>(
-             minnow_conversions::DebugWrap32{b}.debug_get_raw_value());
+             net_stack_conversions::DebugWrap32{b}.debug_get_raw_value());
 }

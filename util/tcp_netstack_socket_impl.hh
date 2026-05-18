@@ -1,4 +1,4 @@
-#include "tcp_minnow_socket.hh"
+#include "tcp_netstack_socket.hh"
 
 #include "exception.hh"
 #include "parser.hh"
@@ -26,7 +26,7 @@ inline uint64_t timestamp_ms() {
 
 //! \param[in] condition is a function returning true if loop should continue
 template <TCPDatagramAdapter AdaptT>
-void TCPMinnowSocket<AdaptT>::_tcp_loop(
+void TCPNetStackSocket<AdaptT>::_tcp_loop(
     const std::function<bool()> &condition) {
   auto base_time = timestamp_ms();
   while (condition()) {
@@ -53,7 +53,7 @@ void TCPMinnowSocket<AdaptT>::_tcp_loop(
 //! sockets \param[in] datagram_interface is the interface for reading and
 //! writing datagrams
 template <TCPDatagramAdapter AdaptT>
-TCPMinnowSocket<AdaptT>::TCPMinnowSocket(
+TCPNetStackSocket<AdaptT>::TCPNetStackSocket(
     std::pair<FileDescriptor, FileDescriptor> data_socket_pair,
     AdaptT &&datagram_interface)
     : LocalStreamSocket(std::move(data_socket_pair.first)),
@@ -64,7 +64,7 @@ TCPMinnowSocket<AdaptT>::TCPMinnowSocket(
 }
 
 template <TCPDatagramAdapter AdaptT>
-void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
+void TCPNetStackSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
   _tcp.emplace(config);
 
   // Set up the event loop
@@ -96,7 +96,7 @@ void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
         if (_thread_data.eof() and
             _tcp.value().sender().sequence_numbers_in_flight() == 0 and
             not _fully_acked) {
-          std::cerr << "DEBUG: minnow outbound stream to "
+          std::cerr << "DEBUG: net_stack outbound stream to "
                     << _datagram_adapter.config().destination.to_string()
                     << " has been fully acknowledged.\n";
           _fully_acked = true;
@@ -118,7 +118,7 @@ void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
           _outbound_shutdown = true;
 
           // debugging output:
-          std::cerr << "DEBUG: minnow outbound stream to "
+          std::cerr << "DEBUG: net_stack outbound stream to "
                     << _datagram_adapter.config().destination.to_string()
                     << " finished ("
                     << _tcp.value().sender().sequence_numbers_in_flight()
@@ -140,7 +140,7 @@ void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
         _outbound_shutdown = true;
       },
       [&] {
-        std::cerr << "DEBUG: minnow outbound stream had error.\n";
+        std::cerr << "DEBUG: net_stack outbound stream had error.\n";
         _tcp->outbound_writer().set_error();
       });
 
@@ -163,7 +163,7 @@ void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
           _inbound_shutdown = true;
 
           // debugging output:
-          std::cerr << "DEBUG: minnow inbound stream from "
+          std::cerr << "DEBUG: net_stack inbound stream from "
                     << _datagram_adapter.config().destination.to_string()
                     << " finished "
                     << (inbound.has_error() ? "uncleanly.\n" : "cleanly.\n");
@@ -177,7 +177,7 @@ void TCPMinnowSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
       },
       [&] {},
       [&] {
-        std::cerr << "DEBUG: minnow inbound stream had error.\n";
+        std::cerr << "DEBUG: net_stack inbound stream had error.\n";
         _tcp->inbound_reader().set_error();
       });
 }
@@ -199,31 +199,31 @@ socket_pair_helper(int domain, int type, int protocol = 0) {
 //! \param[in] datagram_interface is the underlying interface (e.g. to UDP, IP,
 //! or Ethernet)
 template <TCPDatagramAdapter AdaptT>
-TCPMinnowSocket<AdaptT>::TCPMinnowSocket(AdaptT &&datagram_interface)
-    : TCPMinnowSocket(
+TCPNetStackSocket<AdaptT>::TCPNetStackSocket(AdaptT &&datagram_interface)
+    : TCPNetStackSocket(
           socket_pair_helper<LocalStreamSocket>(AF_UNIX, SOCK_STREAM),
           std::move(datagram_interface)) {}
 
 template <TCPDatagramAdapter AdaptT>
-TCPMinnowSocket<AdaptT>::~TCPMinnowSocket() {
+TCPNetStackSocket<AdaptT>::~TCPNetStackSocket() {
   try {
     if (_tcp_thread.joinable()) {
-      std::cerr << "Warning: unclean shutdown of TCPMinnowSocket\n";
+      std::cerr << "Warning: unclean shutdown of TCPNetStackSocket\n";
       // force the other side to exit
       _abort.store(true);
       _tcp_thread.join();
     }
   } catch (const std::exception &e) {
-    std::cerr << "Exception destructing TCPMinnowSocket: " << e.what()
+    std::cerr << "Exception destructing TCPNetStackSocket: " << e.what()
               << std::endl;
   }
 }
 
 template <TCPDatagramAdapter AdaptT>
-void TCPMinnowSocket<AdaptT>::wait_until_closed() {
+void TCPNetStackSocket<AdaptT>::wait_until_closed() {
   shutdown(SHUT_RDWR);
   if (_tcp_thread.joinable()) {
-    std::cerr << "DEBUG: minnow waiting for clean shutdown... ";
+    std::cerr << "DEBUG: net_stack waiting for clean shutdown... ";
     _tcp_thread.join();
     std::cerr << "done.\n";
   }
@@ -232,7 +232,7 @@ void TCPMinnowSocket<AdaptT>::wait_until_closed() {
 //! \param[in] c_tcp is the TCPConfig for the TCPConnection
 //! \param[in] c_ad is the FdAdapterConfig for the FdAdapter
 template <TCPDatagramAdapter AdaptT>
-void TCPMinnowSocket<AdaptT>::connect(const TCPConfig &c_tcp,
+void TCPNetStackSocket<AdaptT>::connect(const TCPConfig &c_tcp,
                                       const FdAdapterConfig &c_ad) {
   if (_tcp) {
     throw std::runtime_error(
@@ -243,7 +243,7 @@ void TCPMinnowSocket<AdaptT>::connect(const TCPConfig &c_tcp,
 
   _datagram_adapter.config_mut() = c_ad;
 
-  std::cerr << "DEBUG: minnow connecting to " << c_ad.destination.to_string()
+  std::cerr << "DEBUG: net_stack connecting to " << c_ad.destination.to_string()
             << "...\n";
 
   if (not _tcp.has_value()) {
@@ -259,20 +259,20 @@ void TCPMinnowSocket<AdaptT>::connect(const TCPConfig &c_tcp,
 
   _tcp_loop([&] { return _tcp->sender().sequence_numbers_in_flight() == 1; });
   if (_tcp->inbound_reader().has_error()) {
-    std::cerr << "DEBUG: minnow error on connecting to "
+    std::cerr << "DEBUG: net_stack error on connecting to "
               << c_ad.destination.to_string() << ".\n";
   } else {
-    std::cerr << "DEBUG: minnow successfully connected to "
+    std::cerr << "DEBUG: net_stack successfully connected to "
               << c_ad.destination.to_string() << ".\n";
   }
 
-  _tcp_thread = std::thread(&TCPMinnowSocket::_tcp_main, this);
+  _tcp_thread = std::thread(&TCPNetStackSocket::_tcp_main, this);
 }
 
 //! \param[in] c_tcp is the TCPConfig for the TCPConnection
 //! \param[in] c_ad is the FdAdapterConfig for the FdAdapter
 template <TCPDatagramAdapter AdaptT>
-void TCPMinnowSocket<AdaptT>::listen_and_accept(const TCPConfig &c_tcp,
+void TCPNetStackSocket<AdaptT>::listen_and_accept(const TCPConfig &c_tcp,
                                                 const FdAdapterConfig &c_ad) {
   if (_tcp) {
     throw std::runtime_error(
@@ -284,18 +284,18 @@ void TCPMinnowSocket<AdaptT>::listen_and_accept(const TCPConfig &c_tcp,
   _datagram_adapter.config_mut() = c_ad;
   _datagram_adapter.set_listening(true);
 
-  std::cerr << "DEBUG: minnow listening for incoming connection...\n";
+  std::cerr << "DEBUG: net_stack listening for incoming connection...\n";
   _tcp_loop([&] {
     return (not _tcp->has_ackno()) or
            (_tcp->sender().sequence_numbers_in_flight());
   });
-  std::cerr << "DEBUG: minnow new connection from "
+  std::cerr << "DEBUG: net_stack new connection from "
             << _datagram_adapter.config().destination.to_string() << ".\n";
 
-  _tcp_thread = std::thread(&TCPMinnowSocket::_tcp_main, this);
+  _tcp_thread = std::thread(&TCPNetStackSocket::_tcp_main, this);
 }
 
-template <TCPDatagramAdapter AdaptT> void TCPMinnowSocket<AdaptT>::_tcp_main() {
+template <TCPDatagramAdapter AdaptT> void TCPNetStackSocket<AdaptT>::_tcp_main() {
   try {
     if (not _tcp.has_value()) {
       throw std::runtime_error("no TCP");
@@ -303,7 +303,7 @@ template <TCPDatagramAdapter AdaptT> void TCPMinnowSocket<AdaptT>::_tcp_main() {
     _tcp_loop([] { return true; });
     shutdown(SHUT_RDWR);
     if (not _tcp.value().active()) {
-      std::cerr << "DEBUG: minnow TCP connection finished "
+      std::cerr << "DEBUG: net_stack TCP connection finished "
                 << (_tcp->inbound_reader().has_error() ? "uncleanly.\n"
                                                        : "cleanly.\n");
     }
