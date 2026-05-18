@@ -9,8 +9,6 @@
 using namespace std;
 
 void get_URL(const string &host, const string &path) {
-  // cerr << "Function called: get_URL(" << host << ", " << path << ")\n";
-  // cerr << "Warning: get_URL() has not been implemented yet.\n";
 
   std::shared_ptr<TCPSocket> socket = std::make_shared<TCPSocket>();
   std::shared_ptr<Address> addr = std::make_shared<Address>(host, "http");

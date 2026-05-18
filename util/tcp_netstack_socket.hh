@@ -16,11 +16,11 @@
 
 //! Multithreaded wrapper around TCPPeer that approximates the Unix sockets API
 template <TCPDatagramAdapter AdaptT>
-class TCPMinnowSocket : public LocalStreamSocket {
+class TCPNetStackSocket : public LocalStreamSocket {
 public:
   //! Construct from the interface that the TCPPeer thread will use to read and
   //! write datagrams
-  explicit TCPMinnowSocket(AdaptT &&datagram_interface);
+  explicit TCPNetStackSocket(AdaptT &&datagram_interface);
 
   //! Close socket, and wait for TCPPeer to finish
   //! \note Calling this function is only advisable if the socket has reached
@@ -37,17 +37,17 @@ public:
   void listen_and_accept(const TCPConfig &c_tcp, const FdAdapterConfig &c_ad);
 
   //! When a connected socket is destructed, it will send a RST
-  ~TCPMinnowSocket();
+  ~TCPNetStackSocket();
 
   //! \name
   //! This object cannot be safely moved or copied, since it is in use by two
   //! threads simultaneously
 
   //!@{
-  TCPMinnowSocket(const TCPMinnowSocket &) = delete;
-  TCPMinnowSocket(TCPMinnowSocket &&) = delete;
-  TCPMinnowSocket &operator=(const TCPMinnowSocket &) = delete;
-  TCPMinnowSocket &operator=(TCPMinnowSocket &&) = delete;
+  TCPNetStackSocket(const TCPNetStackSocket &) = delete;
+  TCPNetStackSocket(TCPNetStackSocket &&) = delete;
+  TCPNetStackSocket &operator=(const TCPNetStackSocket &) = delete;
+  TCPNetStackSocket &operator=(TCPNetStackSocket &&) = delete;
   //!@}
 
   //! \name
@@ -93,14 +93,14 @@ private:
   std::thread _tcp_thread{};
 
   //! Construct LocalStreamSocket fds from socket pair, initialize eventloop
-  TCPMinnowSocket(std::pair<FileDescriptor, FileDescriptor> data_socket_pair,
+  TCPNetStackSocket(std::pair<FileDescriptor, FileDescriptor> data_socket_pair,
                   AdaptT &&datagram_interface);
 
   std::atomic_bool _abort{false}; //!< Flag used by the owner to force the
                                   //!< TCPPeer thread to shut down
 
   bool _inbound_shutdown{
-      false}; //!< Has TCPMinnowSocket shut down the incoming data to the owner?
+      false}; //!< Has TCPNetStackSocket shut down the incoming data to the owner?
 
   bool _outbound_shutdown{false}; //!< Has the owner shut down the outbound data
                                   //!< to the TCP connection?
@@ -109,11 +109,11 @@ private:
       false}; //!< Has the outbound data been fully acknowledged by the peer?
 };
 
-using TCPOverIPv4MinnowSocket = TCPMinnowSocket<TCPOverIPv4OverTunFdAdapter>;
-using LossyTCPOverIPv4MinnowSocket =
-    TCPMinnowSocket<LossyFdAdapter<TCPOverIPv4OverTunFdAdapter>>;
+using TCPOverIPv4NetStackSocket = TCPNetStackSocket<TCPOverIPv4OverTunFdAdapter>;
+using LossyTCPOverIPv4NetStackSocket =
+    TCPNetStackSocket<LossyFdAdapter<TCPOverIPv4OverTunFdAdapter>>;
 
-//! \class TCPMinnowSocket
+//! \class TCPNetStackSocket
 //! This class involves the simultaneous operation of two threads.
 //!
 //! One, the "owner" or foreground thread, interacts with this class in much the
@@ -125,23 +125,23 @@ using LossyTCPOverIPv4MinnowSocket =
 //! kernel would perform for a TCPSocket: reading and parsing datagrams from the
 //! wire, filtering out segments unrelated to the connection, etc.
 //!
-//! There are a few notable differences between the TCPMinnowSocket and
+//! There are a few notable differences between the TCPNetStackSocket and
 //! TCPSocket interfaces:
 //!
-//! - a TCPMinnowSocket can only accept a single connection
+//! - a TCPNetStackSocket can only accept a single connection
 //! - listen_and_accept() is a blocking function call that acts as both
 //! [listen(2)](\ref man2::listen)
 //!   and [accept(2)](\ref man2::accept)
-//! - if TCPMinnowSocket is destructed while a TCP connection is open, the
+//! - if TCPNetStackSocket is destructed while a TCP connection is open, the
 //! connection is
 //!   immediately terminated with a RST (call `wait_until_closed` to avoid this)
 
-//! Helper class that makes a TCPOverIPv4MinnowSocket behave more like a
+//! Helper class that makes a TCPOverIPv4NetStackSocket behave more like a
 //! (kernel) TCPSocket
-class CS144TCPSocket : public TCPOverIPv4MinnowSocket {
+class CS144TCPSocket : public TCPOverIPv4NetStackSocket {
 public:
   CS144TCPSocket()
-      : TCPOverIPv4MinnowSocket(TCPOverIPv4OverTunFdAdapter{TunFD{"tun144"}}) {}
+      : TCPOverIPv4NetStackSocket(TCPOverIPv4OverTunFdAdapter{TunFD{"tun144"}}) {}
   void connect(const Address &address) {
     TCPConfig tcp_config;
     tcp_config.rt_timeout = 100;
@@ -151,6 +151,6 @@ public:
         "169.254.144.9", std::to_string(uint16_t(std::random_device()()))};
     multiplexer_config.destination = address;
 
-    TCPOverIPv4MinnowSocket::connect(tcp_config, multiplexer_config);
+    TCPOverIPv4NetStackSocket::connect(tcp_config, multiplexer_config);
   }
 };

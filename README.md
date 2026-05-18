@@ -9,7 +9,7 @@
 
 
 1. 安装虚拟机 [VirtualBox](https://www.virtualbox.org/)
-   - 如果主机是Linux，你的版本可能已经包括了
+   - 如果主机是Linux，这个跳过，直接运行即可，缺啥装啥
    - Debian类型的（比如Ubuntu），执行`apt-get install virtualbox`进行安装
    - 如果是Macbook Apple芯片，可以考虑改用 [UTM 虚拟机](https://mac.getutm.app/)
 2. 下载 [镜像](https://stanford.edu/class/cs144/vm_files/cs144-fall-2025-x86.ova)， 配置时建议内存给够4GB，CPU核至少一个（多的话利于编译）

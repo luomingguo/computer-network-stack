@@ -3,7 +3,7 @@
 #include "bidirectional_stream_copy.hh"
 #include "exception.hh"
 #include "router.hh"
-#include "tcp_minnow_socket_impl.hh"
+#include "tcp_netstack_socket_impl.hh"
 #include "tcp_over_ip.hh"
 
 #include <cstdlib>
@@ -141,12 +141,12 @@ public:
   FileDescriptor &frame_fd() { return sender_->sockets.second; }
 };
 
-class TCPSocketEndToEnd : public TCPMinnowSocket<NetworkInterfaceAdapter> {
+class TCPSocketEndToEnd : public TCPNetStackSocket<NetworkInterfaceAdapter> {
   Address _local_address;
 
 public:
   TCPSocketEndToEnd(const Address &ip_address, const Address &next_hop)
-      : TCPMinnowSocket<NetworkInterfaceAdapter>(
+      : TCPNetStackSocket<NetworkInterfaceAdapter>(
             NetworkInterfaceAdapter(ip_address, next_hop)),
         _local_address(ip_address) {}
 
@@ -158,7 +158,7 @@ public:
     multiplexer_config.source = _local_address;
     multiplexer_config.destination = address;
 
-    TCPMinnowSocket<NetworkInterfaceAdapter>::connect({}, multiplexer_config);
+    TCPNetStackSocket<NetworkInterfaceAdapter>::connect({}, multiplexer_config);
   }
 
   void bind(const Address &address) {
@@ -171,7 +171,7 @@ public:
   void listen_and_accept() {
     FdAdapterConfig multiplexer_config;
     multiplexer_config.source = _local_address;
-    TCPMinnowSocket<NetworkInterfaceAdapter>::listen_and_accept(
+    TCPNetStackSocket<NetworkInterfaceAdapter>::listen_and_accept(
         {}, multiplexer_config);
   }
 

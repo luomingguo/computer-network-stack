@@ -1,6 +1,6 @@
 #include "bidirectional_stream_copy.hh"
 #include "tcp_config.hh"
-#include "tcp_minnow_socket.hh"
+#include "tcp_netstack_socket.hh"
 #include "tun.hh"
 
 #include <cstdint>
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
     }
 
     auto [c_fsm, c_filt, listen, tun_dev_name] = get_config(args);
-    LossyTCPOverIPv4MinnowSocket tcp_socket(
+    LossyTCPOverIPv4NetStackSocket tcp_socket(
         LossyFdAdapter<TCPOverIPv4OverTunFdAdapter>(TCPOverIPv4OverTunFdAdapter(
             TunFD(tun_dev_name == nullptr ? TUN_DFLT : tun_dev_name))));
 
