@@ -92,9 +92,7 @@ string_view Reader::peek() const {
 }
 
 // Remove `len` bytes from the buffer
-void Reader::pop(uint64_t len) {
-  popped_total_ += len;
-}
+void Reader::pop(uint64_t len) { popped_total_ += len; }
 
 // Number of bytes currently buffered (pushed and not popped)
 uint64_t Reader::bytes_buffered() const {

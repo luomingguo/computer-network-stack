@@ -3,16 +3,15 @@
 
 using namespace std;
 
-optional<TCPMessage> TCPOverIPv4OverTunFdAdapter::read()
-{
-  vector<string> strs( 2 );
-  strs.front().resize( IPv4Header::LENGTH );
-  _tun.read( strs );
+optional<TCPMessage> TCPOverIPv4OverTunFdAdapter::read() {
+  vector<string> strs(2);
+  strs.front().resize(IPv4Header::LENGTH);
+  _tun.read(strs);
 
   InternetDatagram ip_dgram;
-  const vector<string> buffers = { strs.at( 0 ), strs.at( 1 ) };
-  if ( parse( ip_dgram, buffers ) ) {
-    return unwrap_tcp_in_ip( ip_dgram );
+  const vector<string> buffers = {strs.at(0), strs.at(1)};
+  if (parse(ip_dgram, buffers)) {
+    return unwrap_tcp_in_ip(ip_dgram);
   }
   return {};
 }
