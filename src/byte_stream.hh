@@ -1,13 +1,19 @@
 #pragma once
 
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <string_view>
-#include <vector>
 
 class Reader;
 class Writer;
 
+/*
+ByteStream 可靠字节流抽象对象
+- 数据从输入端写入，从输出端按照相同顺序读取
+- writer 可以close输入并结束，reader读到EOF才能结束
+- 单线程运行
+*/
 class ByteStream {
 public:
   explicit ByteStream(uint64_t capacity);
@@ -25,14 +31,13 @@ public:
   bool has_error() const { return error_; }; // Has the stream had an error?
 
 protected:
-  // Please add any additional state to the ByteStream here, and not to the
   // Writer and Reader interfaces.
   uint64_t capacity_;
   bool error_{};
   bool is_close_;
   uint64_t popped_total_;
   uint64_t pushed_total_;
-  std::vector<char> buffer_;
+  std::deque<std::string> container_;
 };
 
 class Writer : public ByteStream {
