@@ -1,14 +1,15 @@
 #pragma once
 
 #include "byte_stream.hh"
-#include <cstdint>
+
 #include <map>
-#include <sys/types.h>
+#include <optional>
 
 class Reassembler {
 public:
   // Construct Reassembler to write into given ByteStream.
-  explicit Reassembler(ByteStream &&output) : output_(std::move(output)) {}
+  explicit Reassembler(ByteStream &&output)
+      : output_(std::move(output)), slots_({}), eof_index_(std::nullopt) {}
 
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -46,7 +47,6 @@ public:
 
 private:
   ByteStream output_; // the Reassembler writes to this ByteStream
-  uint64_t pending_{};
-  uint64_t end_index_ = 0xffffffff;
-  std::map<uint64_t, std::string> unassemble_subs_{};
+  std::map<uint64_t, std::string> slots_;
+  std::optional<uint64_t> eof_index_;
 };
