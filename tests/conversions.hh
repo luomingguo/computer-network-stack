@@ -30,7 +30,8 @@ template <typename T> std::string to_string(const std::optional<T> &v) {
 } // namespace net_stack_conversions
 
 template <typename T>
-concept NetStackStringable = requires(T t) { net_stack_conversions::to_string(t); };
+concept NetStackStringable =
+    requires(T t) { net_stack_conversions::to_string(t); };
 
 template <NetStackStringable T> std::string to_string(T &&t) {
   return net_stack_conversions::to_string(std::forward<T>(t));

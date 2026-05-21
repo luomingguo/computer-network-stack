@@ -23,22 +23,26 @@ void Reassembler::insert(uint64_t first_index, string data,
     eof_index_ = first_index + data.size();
   }
 
-  const uint64_t first_unassembled  = output_.writer().bytes_pushed();
-  const uint64_t first_unacceptable = first_unassembled + output_.writer().available_capacity();
-  uint64_t       last_index         = first_index + data.size();
+  const uint64_t first_unassembled = output_.writer().bytes_pushed();
+  const uint64_t first_unacceptable =
+      first_unassembled + output_.writer().available_capacity();
+  uint64_t last_index = first_index + data.size();
 
   // 统一出口：推送连续段 + 判断 EOF
   auto flush = [&]() {
-    while (!slots_.empty() && slots_.begin()->first == output_.writer().bytes_pushed()) {
+    while (!slots_.empty() &&
+           slots_.begin()->first == output_.writer().bytes_pushed()) {
       auto it = slots_.begin();
       output_.writer().push(std::move(it->second));
       slots_.erase(it);
     }
-    if (eof_index_.has_value() && output_.writer().bytes_pushed() == *eof_index_)
+    if (eof_index_.has_value() &&
+        output_.writer().bytes_pushed() == *eof_index_)
       output_.writer().close();
   };
 
-  if (data.empty() || last_index <= first_unassembled || first_index >= first_unacceptable)
+  if (data.empty() || last_index <= first_unassembled ||
+      first_index >= first_unacceptable)
     return flush();
 
   // ── 原地修剪（不申请新内存）──────────────────────────────────────────────
@@ -47,10 +51,11 @@ void Reassembler::insert(uint64_t first_index, string data,
     first_index = first_unassembled;
   }
   if (last_index > first_unacceptable) {
-    data.resize(first_unacceptable - first_index);  // O(1)
+    data.resize(first_unacceptable - first_index); // O(1)
     last_index = first_index + data.size();
   }
-  if (data.empty()) return flush();
+  if (data.empty())
+    return flush();
 
   uint64_t seg_lo = first_index;
   uint64_t seg_hi = last_index;
@@ -69,7 +74,7 @@ void Reassembler::insert(uint64_t first_index, string data,
       // prev 左延伸，data 右延伸：
       // 只把 data 中 prev 尚未覆盖的右尾 append 进去
       prev->second.append(data, p_hi - seg_lo, string::npos); // 只拷贝右尾
-      data  = std::move(prev->second); // 窃取 prev 的 buffer，零拷贝
+      data = std::move(prev->second); // 窃取 prev 的 buffer，零拷贝
       seg_lo = p_lo;
       seg_hi = p_lo + data.size();
       slots_.erase(prev);
@@ -89,7 +94,6 @@ void Reassembler::insert(uint64_t first_index, string data,
 
   slots_.emplace(seg_lo, std::move(data)); // move，零拷贝
   flush();
-
 }
 
 uint64_t Reassembler::bytes_pending() const {
