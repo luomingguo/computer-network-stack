@@ -8,50 +8,36 @@ void TCPReceiver::receive(TCPSenderMessage message) {
     reassembler_.reader().set_error();
     return;
   }
-
-  // 检查SYN标志来初始化zero_point
   if (message.SYN) {
-    zero_point_ = message.seqno;
-    initialized_zero_point_ = true;
+    isn_ = message.seqno;
   }
-
-  // 如果没有初始化zero_point，无法处理数据
-  if (!initialized_zero_point_) {
+  // ISN 未初始化则忽略
+  if (!isn_.has_value()) {
     return;
   }
 
-  // 优化：避免重复计算，直接计算正确的zero_point
-  // SYN包：zero_point已经是message.seqno，无需调整
-  // 非SYN包：需要zero_point + 1
-  Wrap32 effective_zero_point = message.SYN ? zero_point_ : zero_point_ + 1;
+  const uint64_t abs_seq =
+      message.seqno.unwrap(*isn_, reassembler_.writer().bytes_pushed());
+  const uint64_t stream_idx = abs_seq - 1 + static_cast<uint64_t>(message.SYN);
 
-  // 计算ByteStream序列号
-  uint64_t insert_idx = message.seqno.unwrap(
-      effective_zero_point, reassembler_.writer().bytes_pushed());
-
-  reassembler_.insert(insert_idx, message.payload, message.FIN);
+  reassembler_.insert(stream_idx, std::move(message.payload), message.FIN);
 }
 
 TCPReceiverMessage TCPReceiver::send() const {
-  // Your code here.
-  const auto &writer = reassembler_.writer();
-  const auto &reader = reassembler_.reader();
-  std::optional<Wrap32> ackno = std::nullopt;
-  uint32_t increment = 0;
-  if (initialized_zero_point_) {
-    increment++; // 表示下一个要接受的序列号
-    if (writer.is_closed()) {
-      increment++;
-    }
-    ackno =
-        zero_point_ + static_cast<uint32_t>(writer.bytes_pushed() + increment);
+  TCPReceiverMessage msg;
+  if (reassembler().reader().has_error()) {
+    msg.RST = true;
+    return msg;
   }
-  uint16_t window_size = static_cast<uint16_t>(
-      std::min(writer.available_capacity(), static_cast<uint64_t>(UINT16_MAX)));
+  if (isn_.has_value()) {
+    // 绝对 ackno = 1(SYN) + 已推送字节数 + 1(FIN，仅流关闭后)
+    const uint64_t abs_ackno = 1
+        + reassembler_.writer().bytes_pushed()
+        + static_cast<uint64_t>(reassembler_.writer().is_closed());
 
-  return TCPReceiverMessage{
-      ackno,
-      window_size,
-      reader.has_error(),
-  };
+    msg.ackno = Wrap32::wrap(abs_ackno, *isn_);
+  }
+    msg.window_size = static_cast<uint16_t>(
+      std::min<uint64_t>(reassembler_.writer().available_capacity(), UINT16_MAX));
+  return msg;
 }

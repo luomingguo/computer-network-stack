@@ -23,9 +23,8 @@
 
 ## 编译与运行
 
-
-
 构建： `cmake -S . -B build`
+- 如果是macbook arm64玩家运行会非常慢，更换成Clang++编译器， 比如`cmake -S . -B build -DCMAKE_CXX_COMPILER=clang++`
 
 编译： `cmake --build build`
 
