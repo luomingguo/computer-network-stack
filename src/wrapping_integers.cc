@@ -3,38 +3,20 @@
 #include <cstdlib>
 using namespace std;
 
-// 优化后的 wrap 方法 - 保持不变，已经很高效
 Wrap32 Wrap32::wrap(uint64_t n, Wrap32 zero_point) {
   return Wrap32{static_cast<uint32_t>(n + zero_point.raw_value_)};
 }
 
+// note: 
+//  in TCP, checkpoint = first unassembled index
+//  wrap/unwrap 操作应该保持偏移量一致性——如果两个 seqno 相差 17，那么它们对应的两个 absolute seqno 也应该相差 17
 uint64_t Wrap32::unwrap(Wrap32 zero_point, uint64_t checkpoint) const {
-  uint32_t offset = raw_value_ - zero_point.raw_value_;
+  // 目标是找到里checkpoint最近的那个，核心技巧就是加基准数（2^{31}）再对齐，等价于四舍五入到基准数
+  const uint32_t offset = raw_value_ - zero_point.raw_value_;
+  const uint64_t sum    = checkpoint + (1ULL << 31);
 
-  // 计算三个可能的候选值
-  uint64_t base = (checkpoint >> 32) << 32;
-  uint64_t candidate0 = base + offset;             // 当前区间
-  uint64_t candidate1 = candidate0 + (1ULL << 32); // 下一区间
-  uint64_t candidate2 = (base >= (1ULL << 32)) ?   // 上一区间
-                            candidate0 - (1ULL << 32)
-                                               : candidate0;
+  if (sum < static_cast<uint64_t>(offset)) return offset;
 
-  // 计算到checkpoint的距离
-  auto distance = [checkpoint](uint64_t val) -> uint64_t {
-    return (val >= checkpoint) ? val - checkpoint : checkpoint - val;
-  };
+  return ((sum - offset) & ~uint64_t{0xFFFFFFFF}) + offset;
 
-  uint64_t dist0 = distance(candidate0);
-  uint64_t dist1 = distance(candidate1);
-  uint64_t dist2 =
-      (candidate2 != candidate0) ? distance(candidate2) : UINT64_MAX;
-
-  // 选择距离最小的候选值
-  if (dist0 <= dist1 && dist0 <= dist2) {
-    return candidate0;
-  } else if (dist1 <= dist2) {
-    return candidate1;
-  } else {
-    return candidate2;
-  }
 }
