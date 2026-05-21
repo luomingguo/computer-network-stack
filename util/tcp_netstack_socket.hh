@@ -94,13 +94,13 @@ private:
 
   //! Construct LocalStreamSocket fds from socket pair, initialize eventloop
   TCPNetStackSocket(std::pair<FileDescriptor, FileDescriptor> data_socket_pair,
-                  AdaptT &&datagram_interface);
+                    AdaptT &&datagram_interface);
 
   std::atomic_bool _abort{false}; //!< Flag used by the owner to force the
                                   //!< TCPPeer thread to shut down
 
-  bool _inbound_shutdown{
-      false}; //!< Has TCPNetStackSocket shut down the incoming data to the owner?
+  bool _inbound_shutdown{false}; //!< Has TCPNetStackSocket shut down the
+                                 //!< incoming data to the owner?
 
   bool _outbound_shutdown{false}; //!< Has the owner shut down the outbound data
                                   //!< to the TCP connection?
@@ -109,7 +109,8 @@ private:
       false}; //!< Has the outbound data been fully acknowledged by the peer?
 };
 
-using TCPOverIPv4NetStackSocket = TCPNetStackSocket<TCPOverIPv4OverTunFdAdapter>;
+using TCPOverIPv4NetStackSocket =
+    TCPNetStackSocket<TCPOverIPv4OverTunFdAdapter>;
 using LossyTCPOverIPv4NetStackSocket =
     TCPNetStackSocket<LossyFdAdapter<TCPOverIPv4OverTunFdAdapter>>;
 
@@ -141,7 +142,8 @@ using LossyTCPOverIPv4NetStackSocket =
 class CS144TCPSocket : public TCPOverIPv4NetStackSocket {
 public:
   CS144TCPSocket()
-      : TCPOverIPv4NetStackSocket(TCPOverIPv4OverTunFdAdapter{TunFD{"tun144"}}) {}
+      : TCPOverIPv4NetStackSocket(
+            TCPOverIPv4OverTunFdAdapter{TunFD{"tun144"}}) {}
   void connect(const Address &address) {
     TCPConfig tcp_config;
     tcp_config.rt_timeout = 100;

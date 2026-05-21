@@ -31,13 +31,13 @@ TCPReceiverMessage TCPReceiver::send() const {
   }
   if (isn_.has_value()) {
     // 绝对 ackno = 1(SYN) + 已推送字节数 + 1(FIN，仅流关闭后)
-    const uint64_t abs_ackno = 1
-        + reassembler_.writer().bytes_pushed()
-        + static_cast<uint64_t>(reassembler_.writer().is_closed());
+    const uint64_t abs_ackno =
+        1 + reassembler_.writer().bytes_pushed() +
+        static_cast<uint64_t>(reassembler_.writer().is_closed());
 
     msg.ackno = Wrap32::wrap(abs_ackno, *isn_);
   }
-    msg.window_size = static_cast<uint16_t>(
-      std::min<uint64_t>(reassembler_.writer().available_capacity(), UINT16_MAX));
+  msg.window_size = static_cast<uint16_t>(std::min<uint64_t>(
+      reassembler_.writer().available_capacity(), UINT16_MAX));
   return msg;
 }

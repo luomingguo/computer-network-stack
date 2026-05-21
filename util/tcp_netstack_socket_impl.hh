@@ -233,7 +233,7 @@ void TCPNetStackSocket<AdaptT>::wait_until_closed() {
 //! \param[in] c_ad is the FdAdapterConfig for the FdAdapter
 template <TCPDatagramAdapter AdaptT>
 void TCPNetStackSocket<AdaptT>::connect(const TCPConfig &c_tcp,
-                                      const FdAdapterConfig &c_ad) {
+                                        const FdAdapterConfig &c_ad) {
   if (_tcp) {
     throw std::runtime_error(
         "connect() with TCPConnection already initialized");
@@ -273,7 +273,7 @@ void TCPNetStackSocket<AdaptT>::connect(const TCPConfig &c_tcp,
 //! \param[in] c_ad is the FdAdapterConfig for the FdAdapter
 template <TCPDatagramAdapter AdaptT>
 void TCPNetStackSocket<AdaptT>::listen_and_accept(const TCPConfig &c_tcp,
-                                                const FdAdapterConfig &c_ad) {
+                                                  const FdAdapterConfig &c_ad) {
   if (_tcp) {
     throw std::runtime_error(
         "listen_and_accept() with TCPConnection already initialized");
@@ -295,7 +295,8 @@ void TCPNetStackSocket<AdaptT>::listen_and_accept(const TCPConfig &c_tcp,
   _tcp_thread = std::thread(&TCPNetStackSocket::_tcp_main, this);
 }
 
-template <TCPDatagramAdapter AdaptT> void TCPNetStackSocket<AdaptT>::_tcp_main() {
+template <TCPDatagramAdapter AdaptT>
+void TCPNetStackSocket<AdaptT>::_tcp_main() {
   try {
     if (not _tcp.has_value()) {
       throw std::runtime_error("no TCP");
